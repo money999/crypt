@@ -1,7 +1,0 @@
-<RCC>
-    <qresource prefix="/image">
-        <file>dlam.png</file>
-        <file>yxy.png</file>
-        <file>lyd.png</file>
-    </qresource>
-</RCC>
