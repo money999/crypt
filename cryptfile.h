@@ -85,7 +85,7 @@ class CryptFile : public QDialog
 public:
     CryptFile(QWidget *parent = 0);
     ~CryptFile();
-    recursionDir(QString path, QString prefix);
+    void recursionDir(QString path, QString prefix);
 
     virtual bool eventFilter(QObject *, QEvent *);
 

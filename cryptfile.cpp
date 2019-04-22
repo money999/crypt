@@ -5,6 +5,7 @@
  * 后期发现release版本不会出现上述说的假死现象
  * 问题解决了，写在博客里了
  * 2.1修复了bug，QEvent拿去delete后部分机子会报错，才发现上
+ * 2.2新增可以一次多动多个文件
  * */
 
 
@@ -39,7 +40,7 @@ CryptFile::CryptFile(QWidget *parent)
     flags |=Qt::WindowMaximizeButtonHint;
     setWindowFlags(flags);
 
-    setWindowTitle(tr("CrpytFile by fzj v2.0"));
+    setWindowTitle(tr("CrpytFile by fzj v2.2"));
     setWindowIcon(QIcon(":/image/lyd.png"));
 
 
@@ -62,7 +63,7 @@ CryptFile::CryptFile(QWidget *parent)
     lbFileSize->setAlignment(Qt::AlignHCenter);
     teDisplay->setReadOnly(true);
     teDisplay->setWordWrapMode(QTextOption::NoWrap);
-    teDisplay->setPlaceholderText(tr("将文件或文件夹拖入此处"));
+    teDisplay->setPlaceholderText(tr("将文件或文件夹拖入此处，可一次拖动多个文件或文件夹"));
     teDisplay->installEventFilter(this);
     teDisplay->setAcceptDrops(true);
 
@@ -131,7 +132,7 @@ CryptFile::~CryptFile()
 {
 }
 
-CryptFile::recursionDir(QString path, QString prefix)
+void CryptFile::recursionDir(QString path, QString prefix)
 {
     QDir dir(path);
     dir.setFilter(QDir::Dirs|QDir::Files|QDir::NoDot|QDir::NoDotAndDotDot);
@@ -143,13 +144,13 @@ CryptFile::recursionDir(QString path, QString prefix)
         {
             fileRounts += fPath;
             QStringList t = fPath.split("/");
-            fileNames += QString("%1、").arg(fileNum) + prefix +t.at(t.size()-1);
+            fileNames += QString("%1、").arg(fileNum) + prefix + t.last();
             fileNames += "\n";
             fileNum++;
         }else if(fileInfo.at(i).isDir())
         {
             QStringList t = fPath.split("/");
-            recursionDir(fileInfo.at(i).filePath(), prefix + t.at(t.size()-1) + QDir::separator());
+            recursionDir(fileInfo.at(i).filePath(), prefix + t.last() + QDir::separator());
         }
     }
 }
@@ -167,22 +168,29 @@ bool CryptFile::eventFilter(QObject *watched, QEvent *event)
             QDropEvent *de = dynamic_cast<QDropEvent *>(event);
             QList<QUrl> urls = de->mimeData()->urls();
             if (urls.isEmpty()) { return true; }
-            QString path = urls.first().toLocalFile();
 
-            QFileInfo pathInfo(path);
             fileNames.clear();
             fileRounts.clear();
             fileNum = 1;
-            if(pathInfo.isDir())
-            {
-                recursionDir(path, "");
-                leFileAddress->setText(QDir::toNativeSeparators(path));
-            }else if(pathInfo.isFile())
-            {
-                fileRounts += path;
-                leFileAddress->setText(QDir::toNativeSeparators(pathInfo.path()));
-                fileNames += QString("%1、").arg(fileNum) + pathInfo.fileName();
+
+            foreach(QUrl url, urls){
+                QString path = url.toLocalFile();
+                QFileInfo pathInfo(path);
+                if(pathInfo.isDir())
+                {
+                    QStringList t = path.split("/");
+                    recursionDir(path, t.last() + QDir::separator());
+                }else if(pathInfo.isFile())
+                {
+                    fileRounts += path;
+                    fileNames += QString("%1、").arg(fileNum) + pathInfo.fileName();
+                    fileNames += "\n";
+                    fileNum++;
+                }
             }
+            QString path = urls.first().toLocalFile();
+            QString t = path.left(path.lastIndexOf("/")+1);
+            leFileAddress->setText(QDir::toNativeSeparators(t));
             teDisplay->setText(fileNames);
             lbFileSize->setText("---总共添加 "+QString::number(fileRounts.size(),10)+" 个文件---");
 
